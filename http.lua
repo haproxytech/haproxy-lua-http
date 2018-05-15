@@ -10,7 +10,10 @@
 --
 -- Copyright (c) 2017-2018. Adis Nezirović <anezirovic@haproxy.com>
 -- Copyright (c) 2017-2018. HAProxy Technologies, LLC.
--- All rights reserved
+--
+-- This program is free software: you can redistribute it and/or modify
+-- it under the terms of the GNU General Public License as published by
+-- the Free Software Foundation, version 2 of the License
 
 local _author = "Adis Nezirovic <anezirovic@haproxy.com "
 local _copyright = "Copyright 2017-2018. HAProxy Technologies, LLC. All Rights Reserved."
