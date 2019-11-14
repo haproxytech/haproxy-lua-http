@@ -77,9 +77,14 @@ end
 
 function M.response.send(self, applet)
     applet:set_status(tonumber(self.status_code), self.reason)
-
     for k, v in pairs(self.headers) do
-        applet:add_header(k, v)
+        if type(v) == 'table' then
+            for e in pairs(v) do
+                applet:add_header(k, e)
+            end
+        else
+            applet:add_header(k, v)
+        end
     end
 
     if not self.headers["content-type"] then
@@ -362,7 +367,13 @@ function M.send(method, t)
 
         if t.headers then
             for k, v in pairs(t.headers) do
-                table.insert(hdr_tbl, k .. ": " .. tostring(v))
+                if type(v) == 'table' then
+                    for e in pairs(v) do
+                        table.insert(hdr_tbl, k .. ": " .. tostring(e))
+                    end
+                else 
+                    table.insert(hdr_tbl, k .. ": " .. tostring(v))
+                end
             end
         else
             t.headers = {}  -- dummy table
@@ -533,3 +544,4 @@ function M.base64.decode(s, dec)
 end
 
 return M
+
