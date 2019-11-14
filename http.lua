@@ -79,7 +79,7 @@ function M.response.send(self, applet)
     applet:set_status(tonumber(self.status_code), self.reason)
     for k, v in pairs(self.headers) do
         if type(v) == 'table' then
-            for e in pairs(v) do
+            for _, e in pairs(v) do
                 applet:add_header(k, e)
             end
         else
@@ -368,7 +368,7 @@ function M.send(method, t)
         if t.headers then
             for k, v in pairs(t.headers) do
                 if type(v) == 'table' then
-                    for e in pairs(v) do
+                    for _, e in pairs(v) do
                         table.insert(hdr_tbl, k .. ": " .. tostring(e))
                     end
                 else 
