@@ -327,6 +327,9 @@ function M.send(method, t)
     local socket = core.tcp()
     socket:settimeout(t.timeout or 5)
     local connect
+    if t.url:sub(1, 7) ~= "http://" and t.url:sub(1, 8) ~= "https://" then
+        t.url = "http://" .. t.url
+    end
     local schema, host, req_uri = t.url:match("^(.*)://(.-)(/.*)$")
 
     if not schema then
