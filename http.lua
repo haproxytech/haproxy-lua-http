@@ -336,7 +336,7 @@ function M.send(method, t)
         -- maybe path (request uri) is missing
         schema, host = t.url:match("^(.*)://(.-)$")
         if not schema then
-            return nil, "http." .. method:lower() .. ": Could not parse URL"
+            return nil, "http." .. method:lower() .. ": Could not parse URL: " .. t.url
         end
         req_uri = "/"
     end
@@ -356,10 +356,12 @@ function M.send(method, t)
             port = 443
         end
     else
-        return nil, "http." .. method:lower() .. ": Invalid URL scheme"
+        return nil, "http." .. method:lower() .. ": Invalid URL schema " .. tostring(schema)
     end
 
-    if connect(socket, addr, port) then
+    local c, err = connect(socket, addr, port)
+
+    if c then
         local req = {}
         local hdr_tbl = {}
 
@@ -469,6 +471,7 @@ function M.send(method, t)
     else
         return nil, "http." .. method:lower() .. ": Connection error: " ..
                schema .. "://" .. addr .. ":" .. port
+        return nil, "http." .. method:lower() .. ": Connection error: " .. tostring(err)
     end
 end
 
