@@ -469,8 +469,6 @@ function M.send(method, t)
         socket:close()
         return r
     else
-        return nil, "http." .. method:lower() .. ": Connection error: " ..
-               schema .. "://" .. addr .. ":" .. port
         return nil, "http." .. method:lower() .. ": Connection error: " .. tostring(err)
     end
 end
