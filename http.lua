@@ -449,6 +449,12 @@ function M.send(method, t)
             end
         end
 
+        if method:lower() == "head" then
+            r.content = nil
+            socket:close()
+            return r
+        end
+
         if r.headers["content-length"] and tonumber(r.headers["content-length"]) > 0 then
             r.content, err = socket:receive("*a")
 
