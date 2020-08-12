@@ -256,6 +256,46 @@ function M.request.parse_multipart(self)
     return result
 end
 
+--- Reads all chunks from a HTTP response
+--
+-- @param socket socket object (with already established tcp connection)
+--
+-- @return Full response payload or nil and an error message
+function M.receive_chunked(socket)
+    if socket == nil then
+        return nil, "http.receive_chunked: Socket is nil"
+    end
+    local data = {}
+
+    while true do
+        local chunk, err = socket:receive("*l")
+
+        if chunk == nil then
+            return nil, "http.receive_chunked(): Receive error (chunk length): " .. tostring(err)
+        end
+
+        local chunk_len = tonumber(chunk, 16)
+        if chunk_len == nil then
+            return nil, "http.receive_chunked(): Could not parse chunk length"
+        end
+
+        if chunk_len == 0 then
+            -- TODO: support trailers
+            break
+        end
+
+        -- Consume next chunk (including the \r\n)
+        chunk, err = socket:receive(chunk_len+2)
+        if chunk == nil then
+            return nil, "http.receive_chunked(): Receive error (chunk data): " .. tostring(err)
+        end
+
+        -- Strip the \r\n before collection
+        table.insert(data, string.sub(chunk, 1, -3))
+    end
+
+    return table.concat(data)
+end
 
 --- Creates HTTP request from scratch
 --
@@ -466,21 +506,11 @@ function M.send(method, t)
         end
 
         if r.headers["transfer-encoding"] and r.headers["transfer-encoding"] == "chunked" then
-            local chunks = core.concat()
-            while true do
-                local chunk, err = M.receive_chunk(socket)
-                if not chunk then
-                    socket:close()
-                    return nil, "http." .. method:lower() .. ": Receive error (content): "  .. err
-                else
-                    if chunk ~= "" then
-                        chunks:add(chunk)
-                    else
-                        break
-                    end
-                end
+            r.content, err = M.receive_chunked(socket)
+            if r.content == nil then
+                socket:close()
+                return nil, err
             end
-            r.content = chunks:dump()
         end
 
         socket:close()
@@ -488,28 +518,6 @@ function M.send(method, t)
     else
         return nil, "http." .. method:lower() .. ": Connection error: " .. tostring(err)
     end
-end
-
---- Reads one chunk from a HTTP response
---
--- @param socket socket ojbect (with already established tcp connection)
---
--- @return chunk recieved chunk or nil and an error message
-M.receive_chunk = function(socket)
-
-    local length, err = socket:receive("*l")
-    if length then
-        if length == "" then
-            return ""
-        end
-        local chunk
-        chunk, err = socket:receive("*l")
-        if chunk then
-            return chunk
-        end
-    end
-    return nil, "http." .. method:lower() .. ": Chunk receive error: "  .. err
-
 end
 
 M.base64 = {}
