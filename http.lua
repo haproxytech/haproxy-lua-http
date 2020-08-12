@@ -256,12 +256,14 @@ function M.request.parse_multipart(self)
     return result
 end
 
---- Reads all chunks from a HTTP response
+--- Reads (all) chunks from a HTTP response
 --
 -- @param socket socket object (with already established tcp connection)
+-- @param get_all boolean (true by default), collect all chunks at once
+--                or yield every chunk separately.
 --
 -- @return Full response payload or nil and an error message
-function M.receive_chunked(socket)
+function M.receive_chunked(socket, get_all)
     if socket == nil then
         return nil, "http.receive_chunked: Socket is nil"
     end
@@ -291,7 +293,13 @@ function M.receive_chunked(socket)
         end
 
         -- Strip the \r\n before collection
-        table.insert(data, string.sub(chunk, 1, -3))
+        local chunk_data = string.sub(chunk, 1, -3)
+
+        if get_all == false then
+            return chunk_data
+        end
+
+        table.insert(data, chunk_data)
     end
 
     return table.concat(data)
