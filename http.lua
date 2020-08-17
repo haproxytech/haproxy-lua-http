@@ -148,17 +148,13 @@ function M.request.parse(applet)
 
     self.headers = {}
     for k, v in pairs(applet.headers) do
-        if (v[0] and v[1]) or v[2] then  -- zero/one based arrays with len > 1
+        if (v[1]) then  -- (non folded header with multiple values)
             self.headers[k] = {}
             for _, val in pairs(v) do
-                self.headers[k][#self.headers[k]+1] = val
+                table.insert(self.headers[k], val)
             end
         else
-            if v[0] then
-                self.headers[k] = v[0]
-            elseif v[1] then
-                self.headers[k] = v[1]
-            end
+            self.headers[k] = v[0]
         end
     end
 
