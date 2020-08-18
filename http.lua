@@ -32,6 +32,40 @@ local _version = "1.0.0"
 
 local json = require "json"
 
+-- Utility functions
+
+--- Parse cookies from string
+--
+-- @param s Lua string with value of cookie header (can be nil)
+--
+-- @return Table with parsed cookies or nil
+local function parse_request_cookies(s)
+    if s == nil then return nil end
+    idx = 1
+    cookies = {}
+
+    while idx < s:len() do
+        i, j = s:find("; ", idx)
+
+        if i == nil then
+            k, v = string.match(s:sub(idx), "^(.-)=(.*)$")
+            if k then cookies[k] = v end
+            break
+        end
+
+        k, v = string.match(s:sub(idx, i-1), "^(.-)=(.*)$")
+        if k then cookies[k] = v end
+        idx = j + 1
+    end
+
+    if next(cookies) == nil then
+        return nil
+    else
+        return cookies
+    end
+end
+
+
 --- Namespace object which hosts HTTP verb methods and request/response classes
 local M = {}
 
@@ -161,6 +195,8 @@ function M.request.parse(applet)
     if not self.headers["host"] then
         return nil, "Bad request, no Host header specified"
     end
+
+    self.cookies = parse_request_cookies(self.headers["cookie"])
 
     -- TODO: Patch ApletHTTP and add schema of request
     local schema = applet.schema or "http"
