@@ -124,7 +124,13 @@ function M.response.send(self, applet)
     applet:set_status(tonumber(self.status_code), self.reason)
 
     for k, v in pairs(self.headers) do
-        applet:add_header(k, v)
+        if type(v) == "table" then
+            for _, hdr_val in pairs(v) do
+                applet:add_header(k, hdr_val)
+            end
+        else
+            applet:add_header(k, v)
+        end
     end
 
     if not self.headers["content-type"] then
@@ -458,7 +464,11 @@ function M.send(method, t)
 
         if t.headers then
             for k, v in pairs(t.headers) do
-                table.insert(hdr_tbl, k .. ": " .. tostring(v))
+                if type(v) == "table" then
+                    table.insert(hdr_tbl, k .. ": " .. table.concat(v, ","))
+                else
+                    table.insert(hdr_tbl, k .. ": " .. tostring(v))
+                end
             end
         else
             t.headers = {}  -- dummy table
@@ -524,8 +534,19 @@ function M.send(method, t)
                 r.status_code = tonumber(r.status_code)
             else
                 local sep = line:find(":")
-                r.headers[line:sub(1, sep-1):lower()] =
-                    line:sub(sep+1):match("^%s*(.*%S)%s*$") or ""
+                local hdr_name = line:sub(1, sep-1):lower()
+                local hdr_val = line:sub(sep+1):match("^%s*(.*%S)%s*$") or ""
+
+                if r.headers[hdr_name] == nil then
+                    r.headers[hdr_name] = hdr_val
+                elseif type(r.headers[hdr_name]) == "table" then
+                    table.insert(r.headers[hdr_name], hdr_val)
+                else
+                    r.headers[hdr_name] = {
+                        r.headers[hdr_name],
+                        hdr_val
+                    }
+                end
             end
         end
 
