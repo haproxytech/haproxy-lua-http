@@ -34,7 +34,7 @@ local json = require "json"
 
 -- Utility functions
 
---- Parse cookies from string
+--- Parse request cookies from string
 --
 -- @param s Lua string with value of cookie header (can be nil)
 --
