@@ -34,6 +34,113 @@ local json = require "json"
 
 -- Utility functions
 
+-- HTTP headers fetch helper
+--
+-- Returns a header value(s) according to strategy (fold by default):
+--  - single/string value for "fold", "first" and "last" strategies
+--  - table for "all" strategy (for single value, a table with single element)
+--
+-- @param hdrs table Headers table as received by http.get and friends
+-- @param name string Header name
+-- @param strategy string "multiple header values" handling strategy
+-- @return header value (string or table) or nil
+local function get_header(hdrs, name, strategy)
+    if hdrs == nil or name == nil then return nil end
+
+    local v = hdrs[name:lower()]
+    if type(v) ~= "table" and strategy ~= "all" then return v end
+
+    if strategy == nil or strategy == "fold" then
+        return table.concat(v, ",")
+    elseif strategy == "first" then
+        return v[1]
+    elseif strategy == "last" then
+        return v[#v]
+    elseif strategy == "all" then
+        if type(v) ~= "table" then
+            return {v}
+        else
+            return v
+        end
+    end
+end
+
+
+
+-- HTTP headers iterator helper
+--
+-- Returns key/value pairs for all header, making sure that returned values
+-- are always of string type (if necessary, it folds multiple headers with
+-- the same name)
+--
+-- @param hdrs table Headers table as received by http.get and friends
+-- @return header name/value iterator (suitable for use in "for" loops)
+local function get_headers_folded(hdrs)
+    if hdrs == nil then
+        return function() end
+    end
+
+    local function iter(t, k)
+        local v
+        k, v = next(t, k)
+
+        if v ~= nil then
+            if type(v) ~= "table" then
+                return k, v
+            else
+                return k, table.concat(v, ",")
+            end
+        end
+    end
+
+    return iter, hdrs, nil
+end
+
+-- HTTP headers iterator
+--
+-- Returns key/value pairs for all headers, for multiple headers with same name
+-- it will return every name/value pair
+-- (i.e. you can safely use it to process responses with 'Set-Cookie' header)
+--
+-- @param hdrs table Headers table as received by http.get and friends
+-- @return header name/value iterator (suitable for use in "for" loops)
+local function get_headers_flattened(hdrs)
+    if hdrs == nil then
+        return function() end
+    end
+
+    local k  -- top level key (string)
+    local k_sub = 0  -- sub table key (integer), 0 if item not a table,
+                     -- nil after last sub table iteration
+    local v_sub  -- sub table
+
+    return function ()
+        local v
+        if k_sub == 0 then
+            k, v = next(hdrs, k)
+            if k == nil then return end
+        else
+            k_sub, v = next(v_sub, k_sub)
+
+            if k_sub == nil then
+                k_sub = 0
+                k, v = next(hdrs, k)
+            end
+        end
+
+        if k == nil then return end
+
+        if type(v) ~= "table" then
+            return k, v
+        else
+            v_sub = v
+            k_sub = k_sub + 1
+            return k, v[k_sub]
+        end
+    end
+end
+
+
 --- Parse request cookies from string
 --
 -- @param s Lua string with value of cookie header (can be nil)
@@ -164,6 +271,35 @@ end
 function M.response.json(self)
     return json.decode(self.content)
 end
+
+-- Response headers getter
+--
+-- Returns a header value(s) according to strategy (fold by default):
+--  - single/string value for "fold", "first" and "last" strategies
+--  - table for "all" strategy (for single value, a table with single element)
+--
+-- @param name string Header name
+-- @param strategy string "multiple header values" handling strategy
+-- @return header value (string or table) or nil
+function M.response.get_header(self, name, strategy)
+    return get_header(self.headers, name, strategy)
+end
+
+-- Response headers iterator
+--
+-- Yields key/value pairs for all headers, making sure that returned values
+-- are always of string type
+--
+-- @param folded boolean Specifies whether to fold headers with same name
+-- @return header name/value iterator (suitable for use in "for" loops)
+function M.response.get_headers(self, folded)
+    if folded == true then
+        return get_headers_folded(self.headers)
+    else
+        return get_headers_flattened(self.headers)
+    end
+end
+
 
 --- HTTP request class (client or server side, depending on the constructor)
 M.request = {}
@@ -341,6 +477,36 @@ function M.receive_chunked(socket, get_all)
     end
 
     return table.concat(data)
+end
+
+
+-- Request headers getter
+--
+-- Returns a header value(s) according to strategy (fold by default):
+--  - single/string value for "fold", "first" and "last" strategies
+--  - table for "all" strategy (for single value, a table with single element)
+--
+-- @param name string Header name
+-- @param strategy string "multiple header values" handling strategy
+-- @return header value (string or table) or nil
+function M.request.get_header(self, name, strategy)
+    return get_header(self.headers, name, strategy)
+end
+
+-- Request headers iterator
+--
+-- Yields key/value pairs for all headers, making sure that returned values
+-- are always of string type
+--
+-- @param hdrs table Headers table as received by http.get and friends
+-- @param folded boolean Specifies whether to fold headers with same name
+-- @return header name/value iterator (suitable for use in "for" loops)
+function M.request.get_headers(self, folded)
+    if folded == true then
+        return get_headers_folded(self.headers)
+    else
+        return get_headers_flattened(self.headers)
+    end
 end
 
 --- Creates HTTP request from scratch
