@@ -34,7 +34,7 @@ your own Lua actions or services:
 
       local req = http.request.parse(applet)
       for k, v in req:get_headers() do
-          core.Debug()k .. ": " .. v)
+          core.Debug(k .. ": " .. v)
       end
 
       -- You can also parse submitted form data
@@ -50,7 +50,7 @@ your own Lua actions or services:
 
       if res then
           for k, v in res:get_headers() do
-              core.Debug()k .. ": " .. v)
+              core.Debug(k .. ": " .. v)
           end
       else
         core.Debug(err)
