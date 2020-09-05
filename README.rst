@@ -45,7 +45,7 @@ your own Lua actions or services:
 
       local res, err = http.get{
           url="http://1.2.3.4",
-          headers{host="example.net", ["x-test"] = {"a", "b"}}
+          headers={host="example.net", ["x-test"] = {"a", "b"}}
       }
 
       if res then
