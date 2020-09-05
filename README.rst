@@ -41,7 +41,7 @@ your own Lua actions or services:
       local form, err = req:parse_multipart()
 
       -- 2) Send request to external server (please note there is no DNS
-         support in Lua on HAProxy
+      --    support for Lua on HAProxy
 
       local res, err = http.get{
           url="http://1.2.3.4",
