@@ -63,3 +63,13 @@ your own Lua actions or services:
   end
 
   core.register_service("test", "http", main)
+
+Naturally, you need to add your script to main haproxy configuration::
+
+  global
+    ...
+    lua-load test.lua
+
+  frontend test
+    ...
+    http-request use-service lua.test
