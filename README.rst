@@ -17,8 +17,8 @@ Usage
 -----
 
 After downloading this library, you will need to move it into your Lua package
-package path, to be able to use if from your script. In later HAProxy versions,
-there is ``lua-prepend-path`` directive which can make your life easier.
+package path, to be able to use it from your script. In later HAProxy versions,
+there is a ``lua-prepend-path`` directive which can make your life easier.
 
 Basic usage for parsing client requests, constructing responses, or sending
 custom requests to external servers is demonstrated bellow. You can use this in
@@ -26,7 +26,7 @@ your own Lua actions or services:
 
 .. code-block:: lua
 
-  local require('http')
+  local http = require('http')
 
   local function main(applet)
 
@@ -43,9 +43,8 @@ your own Lua actions or services:
       -- 2) Send request to external server (please note there is no DNS
       --    support for Lua on HAProxy
 
-      local res, err = http.get{
-          url="http://1.2.3.4",
-          headers={host="example.net", ["x-test"] = {"a", "b"}}
+      local res, err = http.get{url="http://1.2.3.4",
+          headers={host="example.net", ["x-test"]={"a", "b"}}
       }
 
       if res then
