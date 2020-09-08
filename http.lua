@@ -141,34 +141,34 @@ local function get_headers_flattened(hdrs)
 end
 
 
---- Parse request cookies from string
+--- Parse key/value pairs from a string
 --
--- @param s Lua string with value of cookie header (can be nil)
+-- @param s Lua string with (multiple) key/value pairs (separated by 'sep')
 --
--- @return Table with parsed cookies or nil
-local function parse_request_cookies(s)
+-- @return Table with parsed keys and values or nil
+local function parse_kv(s, sep)
     if s == nil then return nil end
     idx = 1
-    cookies = {}
+    result = {}
 
     while idx < s:len() do
-        i, j = s:find("; ", idx)
+        i, j = s:find(sep, idx)
 
         if i == nil then
             k, v = string.match(s:sub(idx), "^(.-)=(.*)$")
-            if k then cookies[k] = v end
+            if k then result[k] = v end
             break
         end
 
         k, v = string.match(s:sub(idx, i-1), "^(.-)=(.*)$")
-        if k then cookies[k] = v end
+        if k then result[k] = v end
         idx = j + 1
     end
 
-    if next(cookies) == nil then
+    if next(result) == nil then
         return nil
     else
-        return cookies
+        return result
     end
 end
 
@@ -338,7 +338,7 @@ function M.request.parse(applet)
         return nil, "Bad request, no Host header specified"
     end
 
-    self.cookies = parse_request_cookies(self.headers["cookie"])
+    self.cookies = parse_kv(self.headers["cookie"], "; ")
 
     -- TODO: Patch ApletHTTP and add schema of request
     local schema = applet.schema or "http"
@@ -406,24 +406,12 @@ function M.request.parse_multipart(self)
             old_i = i
         end
     elseif ct == 'application/x-www-form-urlencoded' then
-        local i = 1
-        local j
-        while true do
-            j = body:find('&', i)
-            if j == nil then break end
-
-            local part = body:sub(i, j-1)
-            local k, v = part:match('^(.+)=(.+)$')
-            if k then
-                result[k] = v
-            end
-            i = j + 1
-        end
+        result = parse_kv(body, '&')
     else
         return nil, 'Unsupported Content-Type: ' .. ct
     end
 
-    if not next(result) then
+    if result == nil or not next(result) then
         return nil, 'Could not parse form data'
     end
 
