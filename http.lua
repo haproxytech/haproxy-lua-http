@@ -578,7 +578,7 @@ function M.send(method, t)
     local socket = core.tcp()
     socket:settimeout(t.timeout or 5)
     local connect
-    if t.url:sub(1, 7) ~= "http://" and t.url:sub(1, 8) ~= "https://" then
+    if t.url:sub(1, 7) ~= "http://" and t.url:sub(1, 8) ~= "https://" and t.url:sub(1, 7) ~= "unix://" then
         t.url = "http://" .. t.url
     end
     local schema, host, req_uri = t.url:match("^(.*)://(.-)(/.*)$")
@@ -606,11 +606,23 @@ function M.send(method, t)
             addr = host
             port = 443
         end
+    elseif schema == "unix" then
+        connect = socket.connect
+        schema, uds, http_path = t.url:match("^(.*)://(.-):(.*)$")
+        host = "docker"
+        req_uri = http_path
+        addr = uds
+        port = nil
     else
         return nil, "http." .. method:lower() .. ": Invalid URL schema " .. tostring(schema)
     end
 
-    local c, err = connect(socket, addr, port)
+    local c, err = nil
+    if port then
+        c, err = connect(socket, addr, port)
+    else
+        c, err = connect(socket, addr)
+    end
 
     if c then
         local req = {}
