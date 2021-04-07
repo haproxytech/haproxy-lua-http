@@ -378,7 +378,7 @@ function M.request.parse_multipart(self)
         local old_i
 
         while true do
-            i, j = body:find(boundary, i)
+            i, j = body:find('--' .. boundary, i)
 
             if i == nil then break end
 
