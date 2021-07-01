@@ -173,6 +173,33 @@ local function parse_kv(s, sep)
 end
 
 
+--- Make deep copy of table and it's values
+--
+-- Use only for simple tables (it handles nested table values), but  not for
+-- Lua objects or similar, or very big tables (this uses recursion).
+--
+-- @param t Cloned Lua table or nil
+--
+-- @return Cloned table or nil
+local function copyTable(t)
+    if type(t) ~= "table" then
+        return nil
+    end
+
+    local r = {}
+
+    for k, v in pairs(t) do
+        if type(v) == "table" then
+            r[k] = copyTable(v)
+        else
+            r[k] = v
+        end
+    end
+
+    return r
+end
+
+
 --- Namespace object which hosts HTTP verb methods and request/response classes
 local M = {}
 
@@ -219,7 +246,7 @@ function M.response.create(t)
 
     self.status_code = t.status_code or nil
     self.reason = t.reason or _reason[self.status_code] or ""
-    self.headers = t.headers or {}
+    self.headers = copyTable(t.headers) or {}
     self.content = t.content or ""
     self.request = t.request or nil
     self.encoding = t.encoding or "utf-8"
@@ -516,10 +543,10 @@ function M.request.create(t)
         self.method = "get"
     end
     self.url = t.url or nil
-    self.headers = t.headers or {}
+    self.headers = copyTable(t.headers) or {}
     self.data = t.data or nil
-    self.params = t.params or {}
-    self.auth = t.auth or {}
+    self.params = copyTable(t.params) or {}
+    self.auth = copyTable(t.auth) or {}
 
     return self
 end
