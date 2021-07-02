@@ -51,6 +51,8 @@ your own Lua actions or services:
           for k, v in res:get_headers() do
               core.Debug(k .. ": " .. v)
           end
+          -- We can access the response body in content attribute
+          core.Debug(res.content)
       else
         core.Debug(err)
       end
