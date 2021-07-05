@@ -386,19 +386,44 @@ function M.request.parse(applet)
     return self
 end
 
+--- Escape Lua pattern chars in HTTP multipart boundary
+--
+-- This function escapes only minimal number of characters, which can be
+-- observed in multipart boundaries, namely: -, +, ? and .
+--
+-- @param s string Data to escape
+--
+-- @return escaped data (string)
+local function escape_pattern(s)
+    return s:gsub("%-", "%%-"):gsub("%+", "%%+"):gsub("%?", "%%?"):gsub("%.", "%%.")
+end
+
 --- Parse HTTP POST data
 --
 -- @return Table with submitted form data
 function M.request.parse_multipart(self)
-    local result ={}
     local ct = self.headers['content-type']
-    local body = self.data
+    if ct == nil then
+        return nil, 'Content-Type header not present'
+    end
 
-    if ct:match('^multipart/form[-]data;') then
-        local boundary = ct:match('^multipart/form[-]data; boundary=(.+)$')
+    if self.data == nil then
+        return nil, 'Empty body'
+    end
+    local body = self.data
+    local result ={}
+    core.Debug(body)
+
+    if ct:find('^multipart/form[-]data;') then
+        local boundary = ct:match('^multipart/form[-]data; boundary=["]?(.+)["]?$')
         if boundary == nil then
             return nil, 'Could not parse boundary from Content-Type'
         end
+
+        -- per RFC2046, CLRF is treated as a part of boundary
+        -- but first one does not have it, so we're going pretend
+        -- it is part of the content and ignore it there (in the pattern)
+        boundary = string.format('%%-%%-%s.-\r\n', escape_pattern(boundary))
 
         local i = 1
         local j
@@ -411,7 +436,7 @@ function M.request.parse_multipart(self)
 
             if old_i then
                 local part = body:sub(old_i, i - 1)
-                local k, fn, t, v = part:match('^\r\n[cC]ontent[-][dD]isposition: form[-]data; name[=]"(.+)"; filename="(.+)"\r\n[cC]ontent[-][tT]ype: (.+)\r\n\r\n(.+)\r\n$')
+                local k, fn, t, v = part:match('^[cC]ontent[-][dD]isposition: form[-]data; name[=]"(.+)"; filename="(.+)"\r\n[cC]ontent[-][tT]ype: (.+)\r\n\r\n(.+)\r\n$')
 
                 if k then
                     result[k] = {
@@ -420,7 +445,7 @@ function M.request.parse_multipart(self)
                         data = v
                     }
                 else
-                    k, v = part:match('^\r\n[cC]ontent[-][dD]isposition: form[-]data; name[=]"(.+)"\r\n\r\n(.+)\r\n$')
+                    k, v = part:match('^[cC]ontent[-][dD]isposition: form[-]data; name[=]"(.+)"\r\n\r\n(.+)\r\n$')
 
                     if k then
                         result[k] = v
