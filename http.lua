@@ -412,7 +412,6 @@ function M.request.parse_multipart(self)
     end
     local body = self.data
     local result ={}
-    core.Debug(body)
 
     if ct:find('^multipart/form[-]data;') then
         local boundary = ct:match('^multipart/form[-]data; boundary=["]?(.+)["]?$')
